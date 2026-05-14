@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Dolphin — Setup</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --p:#6B6BD4;--pd:#5858B8;--t:#1BC4A8;--td:#0A8C78;
+  --bg:#0C1528;--tx:#1E1A4A;--ts:#6B6880;
+  --bd:#D4D2EE;--err:#E85252;--ok:#22C55E;
+  --lav:#EEEDF8;--kbg:#C4C2E8;
+  --font:'Segoe UI',system-ui,sans-serif;
+}
+body{font-family:var(--font);background:var(--bg);height:100vh;overflow:hidden;user-select:none;color:var(--tx)}
+
+/* ── DESKTOP BG ── */
+.desk-bg{position:fixed;inset:0;background:var(--bg);z-index:0}
+.desk-bg::before{content:'';position:absolute;inset:0;background:
+  radial-gradient(ellipse 80% 60% at 20% 80%,rgba(40,60,120,.6),transparent),
+  radial-gradient(ellipse 70% 50% at 80% 30%,rgba(30,50,100,.5),transparent),
+  radial-gradient(ellipse 90% 70% at 50% 90%,rgba(20,40,80,.4),transparent);
+}
+
+/* ── WIN11 TASKBAR ── */
+.taskbar{position:fixed;bottom:0;left:0;right:0;height:48px;background:rgba(20,30,50,.85);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;z-index:100;border-top:1px solid rgba(255,255,255,.06)}
+.tb-icons{display:flex;gap:4px;align-items:center}
+.tb-i{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;transition:background .15s}
+.tb-i:hover{background:rgba(255,255,255,.08)}
+.tb-i svg{width:20px;height:20px}
+.tb-i .ico{color:rgba(255,255,255,.55);stroke-width:1.7}
+.tb-left{position:absolute;left:12px;display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.6)}
+.tb-right{position:absolute;right:12px;display:flex;align-items:center;gap:10px;font-size:11px;color:rgba(255,255,255,.6)}
+.tb-tray{display:flex;align-items:center;gap:3px}
+.tb-tray svg{width:14px;height:14px;opacity:.6}
+
+/* ── SHARED ICONS (Lucide, ISC/MIT licensed) ── */
+.icon-sprite{display:none}
+.ico{width:1em;height:1em;display:inline-block;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.125em;flex-shrink:0}
+.ico.fill{fill:currentColor}
+.ico.spin{animation:spin .8s linear infinite}
+.dolphin-logo{display:block;object-fit:contain;flex-shrink:0}
+
+/* ── ONBOARDING PHASE ── */
+#ob-phase{position:relative;z-index:10;height:100vh;display:flex;align-items:center;justify-content:center;padding-bottom:48px}
+.ob-panel{width:920px;height:580px;background:#fff;border-radius:10px;box-shadow:0 16px 64px rgba(0,0,0,.4);display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(255,255,255,.1)}
+
+/* ── PANEL HEADER ── */
+.ph{height:42px;background:#fff;border-bottom:1px solid #EEEDF8;display:flex;align-items:center;padding:0 12px;flex-shrink:0}
+.ph-logo{width:24px;height:24px;margin-right:8px}
+.ph-title{font-size:13px;font-weight:600;color:var(--p);flex:1}
+.ph-grip{color:#C4C2E8;font-size:16px;letter-spacing:2px;margin-right:12px;cursor:grab}
+.ph-btn{width:32px;height:28px;display:flex;align-items:center;justify-content:center;border:none;background:none;color:#999;font-size:12px;cursor:pointer;border-radius:4px;transition:background .1s}
+.ph-btn:hover{background:#f0f0f0}.ph-btn.cls:hover{background:#C42B1C;color:#fff}
+
+/* ── PROGRESS NAV ── */
+.nav{background:#fff;border-bottom:1px solid #EEEDF8;display:flex;align-items:stretch;justify-content:center;height:44px;flex-shrink:0;padding:0 8px}
+.ns{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:#C4C2E8;text-transform:uppercase;letter-spacing:.5px;padding:0 8px;position:relative;white-space:nowrap;transition:color .25s}
+.ns::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:transparent;transition:background .25s}
+.ns.active{color:var(--p)}.ns.active::after{background:var(--p)}
+.ns.done{color:var(--t)}.ns.done::after{background:var(--t)}
+.ndot{width:4px;height:4px;border-radius:50%;background:currentColor;flex-shrink:0}
+.nchev{color:#D4D2EE;font-size:11px;align-self:center;padding:0 2px}
+
+/* ── SCREEN CONTAINER ── */
+.screens{flex:1;overflow:hidden;position:relative;min-height:0}
+.screen{display:none;height:100%}
+.screen.active{display:flex}
+.screen.full.active{justify-content:center}
+
+/* ── SPLIT LAYOUT ── */
+.sl{width:380px;background:#fff;display:flex;flex-direction:column;padding:24px 36px 20px;flex-shrink:0;overflow-y:auto}
+.sr{flex:1;background:#f8f7fc;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+
+/* ── FULL LAYOUT ── */
+.screen.full{background:#f8f7fc}
+.fi{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 40px;position:relative}
+
+/* ── TYPE ── */
+.back{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--ts);cursor:pointer;background:none;border:none;font-family:var(--font);margin-bottom:20px;padding:0;transition:color .15s;align-self:flex-start}
+.back:hover{color:var(--p)}
+h1{font-size:24px;font-weight:700;color:var(--tx);line-height:1.2;margin-bottom:6px}
+.sub{font-size:13px;color:var(--ts);line-height:1.5;margin-bottom:20px}
+
+/* ── FORM ── */
+.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.flbl{font-size:10px;font-weight:700;color:var(--tx);text-transform:uppercase;letter-spacing:.4px}
+.finp{height:40px;padding:0 12px;border:1.5px solid var(--bd);border-radius:8px;font-family:var(--font);font-size:13px;color:var(--tx);outline:none;background:#FAFAF8;transition:border-color .2s;width:100%}
+.finp:focus{border-color:var(--p);background:#fff}
+.fnote{font-size:11px;color:var(--ts);background:var(--lav);border-radius:8px;padding:8px 12px;border:1px solid #EEEDF8;line-height:1.5}
+
+/* ── BUTTONS ── */
+.brow{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:14px}
+.brow.end{justify-content:flex-end}
+.bp{height:40px;padding:0 24px;background:var(--p);color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
+.bp:hover{background:var(--pd)}.bp:disabled{opacity:.35;cursor:not-allowed}
+.bs{height:40px;padding:0 16px;background:none;color:var(--ts);border:1.5px solid var(--bd);border-radius:8px;font-family:var(--font);font-size:13px;cursor:pointer;transition:border-color .15s,color .15s;white-space:nowrap}
+.bs:hover{border-color:var(--p);color:var(--p)}
+
+/* ── OTP ── */
+.otp-row{display:flex;gap:8px;margin-bottom:14px}
+.oi{width:56px;height:62px;border:1.5px solid var(--bd);border-radius:10px;font-size:26px;font-weight:700;text-align:center;color:var(--tx);background:#FAFAF8;outline:none;font-family:var(--font);transition:border-color .2s;user-select:text}
+.oi:focus{border-color:var(--p);background:#fff}
+.oi.ok{border-color:var(--t)}
+
+/* ── PERMISSION ROWS ── */
+.pr{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1.5px solid var(--bd);border-radius:10px;background:#FAFAF8;margin-bottom:8px;transition:border-color .3s,background .3s}
+.pr.granted{border-color:var(--t);background:#F0FDF9}
+.pi{width:30px;height:30px;border-radius:8px;background:var(--lav);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--p);transition:background .3s,color .3s}
+.pr.granted .pi{background:#D4F5EE;color:var(--td)}
+.pt{font-size:12px;font-weight:600;color:var(--tx);margin-bottom:1px}
+.ps{font-size:11px;color:var(--ts);line-height:1.4}
+
+/* ── KEY BADGES ── */
+.kbdg{display:inline-flex;align-items:center;justify-content:center;padding:7px 14px;background:var(--lav);border:2px solid var(--kbg);border-bottom-width:4px;border-radius:8px;font-size:13px;font-weight:700;color:var(--p);transition:all .12s;min-width:48px;font-family:var(--font)}
+.kbdg.pressed{background:#D4F5EE;border-color:var(--t);color:var(--td);transform:translateY(2px);border-bottom-width:2px}
+
+/* ── SHORTCUT CHOICE ── */
+.sc-card{border:2px solid var(--bd);border-radius:10px;padding:14px 16px;background:#FAFAF8;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.sc-card:hover{border-color:var(--p);background:var(--lav)}
+.sc-card.selected{border-color:var(--p);background:var(--lav);box-shadow:0 0 0 3px rgba(107,107,212,.15)}
+.sc-icon{width:40px;height:40px;border-radius:8px;background:var(--lav);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;color:var(--p)}
+.sc-icon .ico{width:22px;height:22px}
+.sc-card.selected .sc-icon{background:#D4D2EE}
+.sc-name{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:1px}
+.sc-desc{font-size:11px;color:var(--ts);line-height:1.3}
+.sc-keys{display:flex;gap:5px;margin-top:4px;flex-wrap:wrap;align-items:center}
+.sc-keys .kbdg{font-size:10px;padding:3px 8px;min-width:0;border-bottom-width:3px}
+
+/* ── NOTE PAD MOCKUP ── */
+.np{border:1px solid #ddd;border-radius:8px;overflow:hidden;width:100%;background:#fff}
+.np-bar{height:28px;background:#fff;border-bottom:1px solid #eee;display:flex;align-items:center;padding:0 10px;justify-content:space-between}
+.np-bar span{font-size:11px;color:#555;font-weight:500}
+.np-bar-btns{display:flex;gap:2px}
+.np-bar-btns div{width:12px;height:12px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#999;cursor:pointer}
+.np-body{padding:10px 12px;min-height:80px;font-size:12px;color:var(--tx);line-height:1.5}
+.np-body.dim{color:#bbb;cursor:pointer}
+.np-body.focused{box-shadow:inset 0 0 0 1.5px var(--t),inset 0 0 0 4px rgba(27,196,168,.1)}
+
+/* ── DONE BADGE ── */
+.done-bdg{width:68px;height:68px;border-radius:20px;background:linear-gradient(135deg,var(--p),var(--t));display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.hchip{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;margin-bottom:6px;width:100%}
+
+/* ── CARD ── */
+.card{background:#fff;border-radius:12px;padding:22px 26px;box-shadow:0 4px 24px rgba(0,0,0,.06);width:100%}
+.ob-pill-demo{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e8e8f0;border-radius:24px;box-shadow:0 4px 18px rgba(0,0,0,.12);padding:7px 12px;font-size:11px;color:var(--tx)}
+.ob-pill-dot{width:22px;height:22px;border-radius:50%;background:#E8F8F0;display:flex;align-items:center;justify-content:center;color:var(--t);flex-shrink:0}
+.ob-widget-note{font-size:11px;color:var(--ts);line-height:1.45;text-align:center;max-width:260px}
+
+/* ── SR MINI WIDGET PREVIEW ── */
+.sr-preview{position:relative;z-index:1;width:220px;background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.12);overflow:hidden;border:1px solid #e8e8f0}
+.sr-preview .pw-header{height:28px;background:#fff;border-bottom:1px solid #eee;display:flex;align-items:center;padding:0 8px;gap:6px}
+.sr-preview .pw-sidebar{width:28px;background:var(--p);display:flex;flex-direction:column;align-items:center;padding:6px 0;gap:6px;flex-shrink:0}
+.sr-preview .pw-sidebar div{width:16px;height:16px;border-radius:4px;background:rgba(255,255,255,.25)}
+.sr-preview .pw-body{flex:1;padding:10px;display:flex;flex-direction:column;gap:6px}
+.sr-preview .pw-row{height:22px;background:var(--lav);border-radius:4px;display:flex;align-items:center;padding:0 6px;gap:4px;font-size:8px;color:var(--p);font-weight:600}
+.sr-preview .pw-row .kk{padding:2px 5px;background:var(--kbg);border-radius:3px;font-size:7px;color:var(--p);font-weight:700}
+.sr-preview .pw-content{display:flex;flex:1}
+
+/* ── WAVEFORM ── */
+@keyframes wvb{0%,100%{height:4px;opacity:.4}50%{height:100%;opacity:1}}
+.wv-icon{display:inline-flex;align-items:flex-end;gap:2px;height:16px;vertical-align:middle}
+.wv-icon div{width:3px;border-radius:2px;background:var(--p);animation:wvb .7s ease-in-out infinite}
+.wv-icon div:nth-child(1){animation-delay:0s}
+.wv-icon div:nth-child(2){animation-delay:.1s}
+.wv-icon div:nth-child(3){animation-delay:.2s}
+.wv-icon div:nth-child(4){animation-delay:.1s}
+.wv-icon div:nth-child(5){animation-delay:0s}
+.wv-icon.teal div{background:var(--t)}
+
+/* ════════════════════════════════════════════
+   DESKTOP PHASE — Widget + Notepad
+   ════════════════════════════════════════════ */
+#dt-phase{display:none;position:relative;z-index:10;height:100vh;padding:20px;padding-bottom:60px}
+.dt-layout{display:flex;gap:16px;height:100%;max-width:1100px;margin:0 auto;align-items:flex-start}
+
+/* ── NOTE PAD (DESKTOP) ── */
+.dt-np{flex:1;height:100%;background:#fff;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,.25);display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.dt-np-bar{height:36px;background:#fff;border-bottom:1px solid #eee;display:flex;align-items:center;padding:0 14px;justify-content:space-between;flex-shrink:0}
+.dt-np-bar span{font-size:12px;color:#555;font-weight:500}
+.dt-np-bar-btns{display:flex;gap:8px}
+.dt-np-bar-btns div{font-size:11px;color:#999;cursor:pointer}
+.dt-np-body{flex:1;padding:14px 16px;font-size:13px;color:var(--tx);line-height:1.6;overflow-y:auto;outline:none;cursor:text}
+
+/* ── DOLPHIN WIDGET (DESKTOP) ── */
+.dt-widget{width:340px;height:340px;background:#fff;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,.25);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.dw-header{height:36px;background:#fff;border-bottom:1px solid #eee;display:flex;align-items:center;padding:0 10px;flex-shrink:0}
+.dw-logo{width:22px;height:22px;margin-right:6px}
+.dw-title{font-size:13px;font-weight:600;color:var(--p);flex:1}
+.dw-grip{color:#C4C2E8;font-size:14px;letter-spacing:1px;margin-right:8px;cursor:grab}
+.dw-hbtn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:none;background:none;color:#999;font-size:11px;cursor:pointer;border-radius:4px;transition:background .1s}
+.dw-hbtn:hover{background:#f0f0f0}
+.dw-main{display:flex;flex:1;min-height:0;overflow:hidden}
+
+/* ── WIDGET SIDEBAR ── */
+.dw-side{width:36px;background:var(--p);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:2px;flex-shrink:0}
+.dw-si{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;background:transparent}
+.dw-si:hover{background:rgba(255,255,255,.15)}
+.dw-si.active{background:rgba(255,255,255,.25)}
+.dw-si svg{width:15px;height:15px}
+.dw-side-spacer{flex:1}
+
+/* ── WIDGET CONTENT ── */
+.dw-content{flex:1;display:flex;flex-direction:column;padding:14px;gap:10px;overflow:hidden}
+
+/* ── MODE ROWS ── */
+.mr{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;transition:background .2s;min-height:48px}
+.mr .mr-badge{min-width:34px;height:26px;display:flex;align-items:center;justify-content:center;background:var(--lav);border:1.5px solid var(--kbg);border-radius:6px;font-size:11px;font-weight:700;color:var(--p);flex-shrink:0}
+.mr-text{flex:1;min-width:0}
+.mr-label{font-size:13px;font-weight:600;color:var(--p)}
+.mr-sub{font-size:11px;color:var(--ts)}
+.mr-wv{flex-shrink:0;display:none}
+.mr.listening{background:#E8F8F0}
+.mr.listening .mr-label{color:var(--tx);font-weight:700}
+.mr.listening .mr-sub{color:var(--ts)}
+.mr.listening .mr-wv{display:flex}
+.mr.dimmed{opacity:.45;pointer-events:none}
+.mr.processing .mr-label{color:var(--p)}
+.mr.success .mr-label{color:var(--ok)}
+.mr.error .mr-label{color:var(--err)}
+.mr.error .mr-sub{color:var(--err);opacity:.7}
+
+/* ── DICTATE-TO ── */
+.dw-target{font-size:11px;color:var(--ts);padding:0 2px}
+.dw-target strong{color:var(--tx)}
+
+/* ── TRANSCRIPT AREA ── */
+.dw-transcript{background:#F5F5F8;border-radius:8px;padding:10px 12px;font-size:12px;color:var(--tx);line-height:1.5;flex:1;min-height:0;overflow-y:auto}
+.dw-transcript.empty{color:#bbb}
+.dw-transcript.err-text{color:var(--err);font-size:11px}
+
+/* ── HISTORY VIEW ── */
+.dw-history{display:none;flex:1;flex-direction:column;overflow-y:auto;padding:14px;min-height:0}
+.dw-history.active{display:flex}
+.dw-history h3{font-size:15px;font-weight:700;color:var(--tx);margin-bottom:12px}
+.hist-item{border-bottom:1px solid #eee;padding:10px 0}
+.hist-item:last-child{border-bottom:none}
+.hist-meta{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.hist-date{font-size:11px;color:var(--ts);font-weight:600}
+.hist-status{font-size:10px;font-weight:600;color:var(--ok);display:flex;align-items:center;gap:3px}
+.hist-status .ico,.state-icon{width:12px;height:12px;vertical-align:-2px}
+.hist-actions{margin-left:auto;display:flex;gap:6px}
+.hist-actions div{width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:var(--p);cursor:pointer;border-radius:4px}
+.hist-actions div:hover{background:var(--lav)}
+.hist-actions .ico{width:13px;height:13px}
+.hist-text{font-size:11px;color:var(--tx);line-height:1.5}
+
+/* ── MINI BAR ── */
+.dt-minibar{display:none;position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#fff;border-radius:24px;box-shadow:0 4px 20px rgba(0,0,0,.25);padding:6px 10px;z-index:90;align-items:center;gap:6px;border:1px solid #eee}
+.dt-minibar.active{display:flex}
+.mb-logo{width:24px;height:24px;flex-shrink:0}
+.mb-status{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mb-status.idle{background:none}
+.mb-status.listening .wv-icon{height:14px}
+.mb-status.ok{background:#E8F8F0}
+.mb-status.err{background:#FEE2E2}
+.mb-status.proc{background:var(--lav)}
+.mb-status .ico{width:13px;height:13px}
+.mb-sep{width:1px;height:18px;background:#eee}
+.mb-btn{width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:4px;color:#999}
+.mb-btn:hover{background:#f5f5f5;color:var(--p)}
+.mb-btn .ico{width:14px;height:14px}
+.mb-bubble{display:none;position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#fff;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding:8px 14px;font-size:12px;color:var(--tx);max-width:500px;border:1px solid #eee;z-index:91;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mb-bubble.active{display:block}
+
+/* ── SPINNER ── */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--bd);border-top-color:var(--p);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:4px}
+
+/* ── TRANSITIONS ── */
+.fade-out{animation:fadeOut .3s ease forwards}
+.fade-in{animation:fadeIn .3s ease forwards}
+@keyframes fadeOut{to{opacity:0;transform:scale(.98)}}
+@keyframes fadeIn{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:scale(1)}}
+</style>
+</head>
+<body>
+
+<svg class="icon-sprite" aria-hidden="true">
+  <!-- Generic UI icons from Lucide (ISC/MIT). Keep brand/logo art separate. -->
+  <symbol id="i-alert-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></symbol>
+  <symbol id="i-battery" viewBox="0 0 24 24"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" x2="22" y1="11" y2="13"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-chevron-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+  <symbol id="i-circle-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.82 1c0 2-3 2-3 4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-grid-2x2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+  <symbol id="i-headphones" viewBox="0 0 24 24"><path d="M3 14v-3a9 9 0 0 1 18 0v3"/><path d="M21 14v4a2 2 0 0 1-2 2h-1v-8h1a2 2 0 0 1 2 2Z"/><path d="M3 14v4a2 2 0 0 0 2 2h1v-8H5a2 2 0 0 0-2 2Z"/></symbol>
+  <symbol id="i-laptop" viewBox="0 0 24 24"><path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9"/><path d="M2 16h20"/><path d="M6 20h12"/></symbol>
+  <symbol id="i-log-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
+  <symbol id="i-maximize-2" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="m21 3-7 7"/><path d="M9 21H3v-6"/><path d="m3 21 7-7"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></symbol>
+  <symbol id="i-minimize-2" viewBox="0 0 24 24"><path d="M4 14h6v6"/><path d="m10 14-7 7"/><path d="M20 10h-6V4"/><path d="m14 10 7-7"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></symbol>
+  <symbol id="i-more-vertical" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol>
+  <symbol id="i-plus-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></symbol>
+  <symbol id="i-rotate-cw" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></symbol>
+  <symbol id="i-square" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/></symbol>
+  <symbol id="i-trash-2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></symbol>
+</svg>
+
+<!-- ══════ SHARED DESKTOP BG ══════ -->
+<div class="desk-bg"></div>
+
+<!-- ══════ PHASE 1: ONBOARDING ══════ -->
+<div id="ob-phase">
+<div class="ob-panel">
+
+<!-- PANEL HEADER -->
+<div class="ph">
+  <img class="dolphin-logo ph-logo" src="/Users/shilpi/.cursor/projects/Users-shilpi-Downloads-DolphinApp-Windows/assets/image-5a8f8908-1ae4-4851-b1e9-1606d8bd520e.png" alt="Dolphin"/>
+  <div class="ph-title">Dolphin — Setup</div>
+  <div class="ph-grip">:::</div>
+  <button class="ph-btn">&#8212;</button>
+  <button class="ph-btn">&#9633;</button>
+  <button class="ph-btn cls">&#10005;</button>
+</div>
+
+<!-- PROGRESS NAV -->
+<div class="nav">
+  <div class="ns active" data-s="0"><div class="ndot"></div>Sign In</div>
+  <div class="nchev">›</div>
+  <div class="ns" data-s="1"><div class="ndot"></div>Permissions</div>
+  <div class="nchev">›</div>
+  <div class="ns" data-s="2"><div class="ndot"></div>Choose Keys</div>
+  <div class="nchev">›</div>
+  <div class="ns" data-s="3"><div class="ndot"></div>Learn</div>
+  <div class="nchev">›</div>
+  <div class="ns" data-s="4"><div class="ndot"></div>Done</div>
+</div>
+
+<div class="screens">
+
+<!-- ─── 0: WELCOME ─── -->
+<div class="screen active" data-step="0" data-sec="0">
+  <div class="sl" style="justify-content:center">
+    <div style="width:48px;height:48px;border-radius:14px;background:var(--p);display:flex;align-items:center;justify-content:center;margin-bottom:18px">
+      <img class="dolphin-logo" src="/Users/shilpi/.cursor/projects/Users-shilpi-Downloads-DolphinApp-Windows/assets/image-5a8f8908-1ae4-4851-b1e9-1606d8bd520e.png" alt="Dolphin" style="width:28px;height:28px"/>
+    </div>
+    <h1>Meet Dolphin,<br>your AI scribe</h1>
+    <p class="sub">Dictate directly into any text field — no copy-pasting, no switching apps.</p>
+    <div style="display:flex;gap:14px;padding:12px 16px;background:var(--lav);border-radius:8px;border:1px solid #e8e6f4;margin-bottom:22px">
+      <div style="text-align:center;flex:1">
+        <div style="font-size:15px;font-weight:700;color:var(--p)" id="w-ptt-label">F7</div>
+        <div style="font-size:10px;color:var(--ts);margin-top:2px">Hold to dictate</div>
+      </div>
+      <div style="width:1px;background:var(--bd)"></div>
+      <div style="text-align:center;flex:1">
+        <div style="font-size:15px;font-weight:700;color:var(--t)" id="w-hf-label">F8</div>
+        <div style="font-size:10px;color:var(--ts);margin-top:2px">Hands-free mode</div>
+      </div>
+    </div>
+    <button class="bp" style="width:100%;height:44px;font-size:14px" onclick="goTo(1)">Get Started →</button>
+  </div>
+  <div class="sr">
+    <div class="sr-preview">
+      <div class="pw-header">
+        <img class="dolphin-logo" src="/Users/shilpi/.cursor/projects/Users-shilpi-Downloads-DolphinApp-Windows/assets/image-5a8f8908-1ae4-4851-b1e9-1606d8bd520e.png" alt="Dolphin" style="width:14px;height:14px"/>
+        <span style="font-size:9px;font-weight:600;color:var(--p);flex:1">Dolphin</span>
+        <span style="font-size:8px;color:#ccc">:::</span>
+      </div>
+      <div class="pw-content">
+        <div class="pw-sidebar"><div></div><div></div><div></div></div>
+        <div class="pw-body">
+          <div class="pw-row"><span class="kk" id="sr-pk1">F7</span> Hold to Dictate</div>
+          <div class="pw-row"><span class="kk" id="sr-pk2">F8</span> Hands-Free</div>
+          <div style="font-size:7px;color:var(--ts);margin-top:4px">Dictate to: <b>Notepad</b></div>
+          <div style="background:#f5f5f8;border-radius:4px;padding:6px;font-size:7px;color:#bbb;margin-top:4px;flex:1">Listening...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 1: EMAIL ─── -->
+<div class="screen" data-step="1" data-sec="0">
+  <div class="sl">
+    <button class="back" onclick="goTo(0)">← Back</button>
+    <h1>Sign in to Dolphin</h1>
+    <p class="sub">Enter your Marvix work email. We'll send a 4-digit code — no password needed.</p>
+    <div class="fg">
+      <div class="flbl">Work email</div>
+      <input class="finp" id="email-in" type="email" placeholder="you@marvix.ai" autocomplete="off"/>
+    </div>
+    <div class="fnote">A one-time code will be sent to your Marvix inbox.</div>
+    <div class="brow end"><button class="bp" onclick="sendCode()">Send Code →</button></div>
+  </div>
+  <div class="sr">
+    <div style="position:relative;z-index:1;background:#fff;border-radius:10px;padding:20px 24px;box-shadow:0 4px 16px rgba(0,0,0,.06);text-align:center">
+      <div style="font-size:32px;margin-bottom:8px;color:var(--p)"><svg class="ico" aria-hidden="true"><use href="#i-mail"></use></svg></div>
+      <div style="font-size:12px;color:var(--ts);line-height:1.5">A code will arrive<br>in your Marvix inbox</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 2: OTP ─── -->
+<div class="screen" data-step="2" data-sec="0">
+  <div class="sl">
+    <button class="back" onclick="goTo(1)">← Back</button>
+    <h1>Check your email</h1>
+    <p class="sub" id="otp-sub">Enter the 4-digit code sent to <strong>you@marvix.ai</strong></p>
+    <div class="otp-row">
+      <input class="oi" id="oi0" maxlength="1" inputmode="numeric"/>
+      <input class="oi" id="oi1" maxlength="1" inputmode="numeric"/>
+      <input class="oi" id="oi2" maxlength="1" inputmode="numeric"/>
+      <input class="oi" id="oi3" maxlength="1" inputmode="numeric"/>
+    </div>
+    <div style="font-size:11px;color:var(--ts)">Didn't get a code? <button style="background:none;border:none;color:var(--p);font-size:11px;cursor:pointer;font-family:var(--font);font-weight:600">Resend</button></div>
+    <div class="brow">
+      <button class="bs" onclick="goTo(1)">Back</button>
+      <button class="bp" id="btn-verify" onclick="goTo(3)" disabled>Verify →</button>
+    </div>
+  </div>
+  <div class="sr">
+    <div style="position:relative;z-index:1;display:flex;gap:8px">
+      <div id="op0" style="width:40px;height:48px;border:2px solid var(--kbg);border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--p)">·</div>
+      <div id="op1" style="width:40px;height:48px;border:2px solid var(--kbg);border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--p)">·</div>
+      <div id="op2" style="width:40px;height:48px;border:2px solid var(--kbg);border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--p)">·</div>
+      <div id="op3" style="width:40px;height:48px;border:2px solid var(--kbg);border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--p)">·</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 3: PERMISSIONS ─── -->
+<div class="screen" data-step="3" data-sec="1">
+  <div class="sl">
+    <button class="back" onclick="goTo(2)">← Back</button>
+    <h1>We value your privacy</h1>
+    <p class="sub">Dolphin needs these permissions. Audio is never stored.</p>
+    <div class="pr granted">
+      <div class="pi"><svg class="ico" aria-hidden="true"><use href="#i-check"></use></svg></div>
+      <div><div class="pt">Paste text anywhere</div><div class="ps">Types transcribed text into your focused field.</div></div>
+    </div>
+    <div class="pr granted">
+      <div class="pi"><svg class="ico" aria-hidden="true"><use href="#i-check"></use></svg></div>
+      <div><div class="pt">Use your microphone</div><div class="ps">Captures audio only while the shortcut is held.</div></div>
+    </div>
+    <div class="brow end"><button class="bp" onclick="goTo(4)">Continue →</button></div>
+  </div>
+  <div class="sr">
+    <div style="position:relative;z-index:1;width:120px;height:120px;border-radius:50%;background:#fff;box-shadow:0 6px 24px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center">
+      <svg width="56" height="56" viewBox="0 0 68 68" fill="none"><rect x="18" y="6" width="32" height="38" rx="16" fill="var(--lav)" stroke="var(--p)" stroke-width="2.4"/><path d="M10 38c0 13.3 10.7 24 24 24s24-10.7 24-24" stroke="var(--t)" stroke-width="2.4" stroke-linecap="round" fill="none"/><line x1="34" y1="62" x2="34" y2="66" stroke="var(--t)" stroke-width="2.4" stroke-linecap="round"/></svg>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 4: CHOOSE SHORTCUTS ─── -->
+<div class="screen" data-step="4" data-sec="2">
+  <div class="sl">
+    <button class="back" onclick="goTo(3)">← Back</button>
+    <h1>Choose your shortcuts</h1>
+    <p class="sub">Pick the set that works best with your keyboard.</p>
+    <div class="sc-card selected" id="sc-desktop" onclick="pickShortcut('desktop')">
+      <div class="sc-icon"><svg class="ico" aria-hidden="true"><use href="#i-monitor"></use></svg></div>
+      <div style="flex:1">
+        <div class="sc-name">Desktop Keyboard</div>
+        <div class="sc-desc">Full-size keyboards with function keys</div>
+        <div class="sc-keys"><div class="kbdg">F7</div><span style="font-size:10px;color:var(--ts)">talk</span><div class="kbdg" style="margin-left:6px">F8</div><span style="font-size:10px;color:var(--ts)">hands-free</span></div>
+      </div>
+    </div>
+    <div class="sc-card" id="sc-laptop" onclick="pickShortcut('laptop')">
+      <div class="sc-icon"><svg class="ico" aria-hidden="true"><use href="#i-laptop"></use></svg></div>
+      <div style="flex:1">
+        <div class="sc-name">Laptop Keyboard</div>
+        <div class="sc-desc">Compact keyboards without easy Fn keys</div>
+        <div class="sc-keys"><div class="kbdg">Alt+X</div><span style="font-size:10px;color:var(--ts)">talk</span><div class="kbdg" style="margin-left:6px">Alt+Z</div><span style="font-size:10px;color:var(--ts)">hands-free</span></div>
+      </div>
+    </div>
+    <div class="fnote" style="margin-top:6px">You can change this later in Settings.</div>
+    <div class="brow end"><button class="bp" onclick="goTo(5)">Continue →</button></div>
+  </div>
+  <div class="sr">
+    <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:10px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="kbdg" style="font-size:16px;padding:12px 18px" id="sr-ptt-key">F7</div>
+        <div style="font-size:13px;color:var(--ts)">+</div>
+        <div class="kbdg" style="font-size:16px;padding:12px 18px" id="sr-hf-key">F8</div>
+      </div>
+      <div style="font-size:11px;color:var(--ts);text-align:center">Your shortcuts for<br>push-to-talk &amp; hands-free</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 5: PTT — SEE IT ─── -->
+<div class="screen" data-step="5" data-sec="3">
+  <div class="sl">
+    <button class="back" onclick="goTo(4)">← Back</button>
+    <h1>Hold <span style="color:var(--p)" id="ptt-see-key">F7</span> to dictate</h1>
+    <p class="sub">Dolphin follows the field you have focused. Hold the shortcut while speaking, then release to insert text.</p>
+    <div class="fnote" style="margin-bottom:12px">The widget shows whether Dolphin is idle, listening, processing, or finished.</div>
+    <div class="ob-pill-demo" style="margin-bottom:12px">
+      <div class="ob-pill-dot"><svg class="ico" aria-hidden="true" style="width:13px;height:13px"><use href="#i-mic"></use></svg></div>
+      <span>Compact pill appears when the widget is minimized.</span>
+    </div>
+    <div class="brow">
+      <button class="bs" onclick="goTo(6)">Skip</button>
+      <button class="bp" onclick="goTo(6)">Try it yourself →</button>
+    </div>
+  </div>
+  <div class="sr">
+    <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:12px;width:320px">
+      <div class="np">
+        <div class="np-bar"><span>Note Pad</span><div class="np-bar-btns"><div>—</div><div>×</div></div></div>
+        <div class="np-body focused" id="ptt-demo-text" style="min-height:78px"></div>
+      </div>
+      <div class="sr-preview" style="width:260px">
+        <div class="pw-header">
+          <img class="dolphin-logo" src="/Users/shilpi/.cursor/projects/Users-shilpi-Downloads-DolphinApp-Windows/assets/image-5a8f8908-1ae4-4851-b1e9-1606d8bd520e.png" alt="Dolphin" style="width:14px;height:14px"/>
+          <span style="font-size:9px;font-weight:600;color:var(--p);flex:1">Dolphin</span>
+          <span style="font-size:8px;color:#ccc">:::</span>
+        </div>
+        <div class="pw-content">
+          <div class="pw-sidebar"><div></div><div></div><div></div></div>
+          <div class="pw-body">
+            <div class="pw-row" style="background:#E8F8F0;color:var(--tx)"><span class="kk" id="ptt-widget-key">F7</span> Listening...</div>
+            <div class="pw-row"><span class="kk">F8</span> Hands-Free</div>
+            <div style="font-size:7px;color:var(--ts);margin-top:4px">Dictate to: <b>Note Pad</b></div>
+          </div>
+        </div>
+      </div>
+      <div class="ob-widget-note">This is the core loop: focus a field, use the shortcut, then watch Dolphin insert the text.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 6: PTT — TRY IT ─── -->
+<div class="screen full" data-step="6" data-sec="3">
+  <div class="fi" style="max-width:500px">
+    <button class="back" onclick="goTo(5)">← Back</button>
+    <h1 style="text-align:center">Now you try</h1>
+    <p class="sub" style="text-align:center;margin-bottom:12px">Click the text field, then hold <strong id="ptt-try-key">F7</strong>.</p>
+    <div class="np">
+      <div class="np-bar"><span>Note Pad</span><div class="np-bar-btns"><div>—</div><div>×</div></div></div>
+      <div class="np-body dim" id="ptt-demo-f" onclick="activatePttDemo()" style="min-height:70px">Click here to focus…</div>
+    </div>
+    <div id="ptt-demo-hint" style="margin-top:8px;padding:8px 12px;background:#fff;border-radius:6px;border:1px solid #eee;font-size:11px;color:var(--ts)">Step 1 of 2 — <strong>Click into the text field above</strong></div>
+    <div class="ob-pill-demo" style="margin-top:8px">
+      <div class="ob-pill-dot"><svg class="ico" aria-hidden="true" style="width:13px;height:13px"><use href="#i-mic"></use></svg></div>
+      <span>Watch for this pill when Dolphin is listening.</span>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="bs" onclick="goTo(7)">Skip</button>
+      <button class="bp" id="btn-ptt-demo" onclick="goTo(7)" disabled>Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 7: HF — SEE IT ─── -->
+<div class="screen" data-step="7" data-sec="3">
+  <div class="sl">
+    <button class="back" onclick="goTo(6)">← Back</button>
+    <h1>Press <span style="color:var(--t)" id="hf-see-key">F8</span> for hands-free</h1>
+    <p class="sub">Hands-free mode keeps listening until you press the shortcut again. It is better for longer notes.</p>
+    <div class="card" style="display:flex;align-items:center;justify-content:space-around;gap:10px;padding:18px 16px;margin-bottom:10px">
+      <div style="text-align:center"><div class="kbdg" style="font-size:11px;padding:6px 10px;margin-bottom:6px" id="hf-start-badge">F8</div><div style="font-size:10px;color:var(--ts)">Start</div></div>
+      <div style="font-size:18px;color:#C4C2E8">→</div>
+      <div style="width:56px;height:56px;border-radius:50%;background:#D4F5EE;border:2px solid var(--t);display:flex;align-items:center;justify-content:center">
+        <div class="wv-icon teal" style="height:24px"><div style="height:8px"></div><div style="height:16px"></div><div style="height:22px"></div><div style="height:16px"></div><div style="height:8px"></div></div>
+      </div>
+      <div style="font-size:18px;color:#C4C2E8">→</div>
+      <div style="text-align:center"><div class="kbdg" style="font-size:11px;padding:6px 10px;margin-bottom:6px" id="hf-stop-badge">F8</div><div style="font-size:10px;color:var(--ts)">Stop</div></div>
+    </div>
+    <div class="fnote">The widget and pill both turn into a listening state so you never have to guess whether Dolphin is active.</div>
+    <div class="brow">
+      <button class="bs" onclick="goTo(6)">Back</button>
+      <button class="bp" onclick="goTo(8)">Got it →</button>
+    </div>
+  </div>
+  <div class="sr">
+    <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:12px;width:300px">
+      <div class="sr-preview" style="width:270px">
+        <div class="pw-header">
+          <img class="dolphin-logo" src="/Users/shilpi/.cursor/projects/Users-shilpi-Downloads-DolphinApp-Windows/assets/image-5a8f8908-1ae4-4851-b1e9-1606d8bd520e.png" alt="Dolphin" style="width:14px;height:14px"/>
+          <span style="font-size:9px;font-weight:600;color:var(--p);flex:1">Dolphin</span>
+          <span style="font-size:8px;color:#ccc">:::</span>
+        </div>
+        <div class="pw-content">
+          <div class="pw-sidebar"><div></div><div></div><div></div></div>
+          <div class="pw-body">
+            <div class="pw-row"><span class="kk">F7</span> Hold to Dictate</div>
+            <div class="pw-row" style="background:#E8F8F0;color:var(--tx)"><span class="kk" id="hf-widget-key">F8</span> Listening...</div>
+            <div style="background:#f5f5f8;border-radius:4px;padding:6px;font-size:7px;color:var(--tx);margin-top:4px;flex:1">Live transcript appears here while Dolphin listens.</div>
+          </div>
+        </div>
+      </div>
+      <div class="ob-pill-demo">
+        <img class="dolphin-logo" src="/Users/shilpi/.cursor/projects/Users-shilpi-Downloads-DolphinApp-Windows/assets/image-5a8f8908-1ae4-4851-b1e9-1606d8bd520e.png" alt="Dolphin" style="width:22px;height:22px"/>
+        <div class="ob-pill-dot"><div class="wv-icon teal" style="height:13px"><div></div><div></div><div></div><div></div><div></div></div></div>
+        <span>Listening continuously...</span>
+      </div>
+      <div class="ob-widget-note">The compact pill is the minimized version of the widget for when you want less screen space.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 8: HF — TRY IT ─── -->
+<div class="screen full" data-step="8" data-sec="3">
+  <div class="fi" style="max-width:500px">
+    <button class="back" onclick="goTo(7)">← Back</button>
+    <h1 style="text-align:center">Try hands-free</h1>
+    <p class="sub" style="text-align:center;margin-bottom:12px">Click the field, then press <strong id="hf-try-key">F8</strong> to start.</p>
+    <div class="np">
+      <div class="np-bar"><span>Note Pad</span><div class="np-bar-btns"><div>—</div><div>×</div></div></div>
+      <div class="np-body dim" id="hf-demo-f" onclick="activateHfDemo()" style="min-height:70px">Click here to focus…</div>
+    </div>
+    <div id="hf-demo-hint" style="margin-top:8px;padding:8px 12px;background:#fff;border-radius:6px;border:1px solid #eee;font-size:11px;color:var(--ts)">Step 1 of 2 — <strong>Click into the text field above</strong></div>
+    <div class="ob-pill-demo" style="margin-top:8px">
+      <div class="ob-pill-dot"><div class="wv-icon teal" style="height:13px"><div></div><div></div><div></div><div></div><div></div></div></div>
+      <span>The pill stays visible while hands-free is on.</span>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="bs" onclick="goTo(9)">Skip</button>
+      <button class="bp" id="btn-hf-demo" onclick="goTo(9)" disabled>Finish →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 9: DONE ─── -->
+<div class="screen" data-step="9" data-sec="4">
+  <div class="sl" style="justify-content:center">
+    <div class="done-bdg"><svg class="ico" aria-hidden="true" style="width:32px;height:32px;color:#fff"><use href="#i-check"></use></svg></div>
+    <h1 style="font-size:24px;margin-bottom:6px">You're all set!</h1>
+    <p class="sub" style="margin-bottom:18px">Dolphin is running in your system tray. Open a text field and start dictating.</p>
+    <div style="width:100%;margin-bottom:20px">
+      <div class="hchip" style="background:var(--lav);border:1px solid #e8e6f4">
+        <div style="font-size:12px;font-weight:700;color:var(--p);min-width:48px" id="done-ptt-label">F7</div>
+        <div style="font-size:11px;color:var(--ts)">Hold to dictate (push-to-talk)</div>
+      </div>
+      <div class="hchip" style="background:#F0FDF9;border:1px solid #AAEEE4">
+        <div style="font-size:12px;font-weight:700;color:var(--t);min-width:48px" id="done-hf-label">F8</div>
+        <div style="font-size:11px;color:var(--ts)">Toggle hands-free mode</div>
+      </div>
+    </div>
+    <button class="bp" style="height:44px;padding:0 38px;font-size:14px" onclick="launchDesktop()">Launch Dolphin →</button>
+  </div>
+  <div class="sr">
+    <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:14px;width:320px">
+      <div class="sr-preview" style="width:270px">
+        <div class="pw-header">
+          <img class="dolphin-logo" src="/Users/shilpi/.cursor/projects/Users-shilpi-Downloads-DolphinApp-Windows/assets/image-5a8f8908-1ae4-4851-b1e9-1606d8bd520e.png" alt="Dolphin" style="width:14px;height:14px"/>
+          <span style="font-size:9px;font-weight:600;color:var(--p);flex:1">Dolphin</span>
+          <span style="font-size:8px;color:#ccc">:::</span>
+        </div>
+        <div class="pw-content">
+          <div class="pw-sidebar"><div></div><div></div><div></div></div>
+          <div class="pw-body">
+            <div class="pw-row"><span class="kk" id="done-widget-ptt">F7</span> Hold to Dictate</div>
+            <div class="pw-row"><span class="kk" id="done-widget-hf">F8</span> Hands-Free</div>
+            <div style="font-size:7px;color:var(--ts);margin-top:4px">Dictate to: <b>Any focused text field</b></div>
+            <div style="background:#f5f5f8;border-radius:4px;padding:6px;font-size:7px;color:#bbb;margin-top:4px;flex:1">Your transcript appears here before insertion.</div>
+          </div>
+        </div>
+      </div>
+      <div class="ob-pill-demo">
+        <img class="dolphin-logo" src="/Users/shilpi/.cursor/projects/Users-shilpi-Downloads-DolphinApp-Windows/assets/image-5a8f8908-1ae4-4851-b1e9-1606d8bd520e.png" alt="Dolphin" style="width:22px;height:22px"/>
+        <div class="ob-pill-dot"><svg class="ico" aria-hidden="true" style="width:13px;height:13px"><use href="#i-check"></use></svg></div>
+        <span>Minimize to pill when you want Dolphin out of the way.</span>
+      </div>
+      <div class="ob-widget-note">Use the full widget when you want status, transcript, or history. Use the pill when you only need listening feedback.</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /screens -->
+</div><!-- /ob-panel -->
+</div><!-- /ob-phase -->
+
+<!-- ══════ PHASE 2: DESKTOP SIMULATION ══════ -->
+<div id="dt-phase">
+<div class="dt-layout">
+
+  <!-- NOTE PAD -->
+  <div class="dt-np">
+    <div class="dt-np-bar"><span>Note Pad</span><div class="dt-np-bar-btns"><div>—</div><div>×</div></div></div>
+    <div class="dt-np-body" id="np-editor" onclick="setTarget()"></div>
+  </div>
+
+  <!-- DOLPHIN WIDGET -->
+  <div class="dt-widget" id="dw-full">
+    <div class="dw-header">
+      <img class="dolphin-logo dw-logo" src="/Users/shilpi/.cursor/projects/Users-shilpi-Downloads-DolphinApp-Windows/assets/image-5a8f8908-1ae4-4851-b1e9-1606d8bd520e.png" alt="Dolphin"/>
+      <div class="dw-title">Dolphin</div>
+      <div class="dw-grip">:::</div>
+      <button class="dw-hbtn" onclick="toggleMinibar()" title="Minimize to bar"><svg class="ico" aria-hidden="true"><use href="#i-minimize-2"></use></svg></button>
+      <button class="dw-hbtn">×</button>
+    </div>
+    <div class="dw-main">
+      <!-- SIDEBAR -->
+      <div class="dw-side">
+        <div class="dw-si active" id="si-mic" onclick="showMainView()" title="Dictation">
+          <svg class="ico" aria-hidden="true" style="color:#fff"><use href="#i-mic"></use></svg>
+        </div>
+        <div class="dw-si" id="si-hist" onclick="showHistoryView()" title="History">
+          <svg class="ico" aria-hidden="true" style="color:#fff"><use href="#i-clock"></use></svg>
+        </div>
+        <div class="dw-si" title="Help">
+          <svg class="ico" aria-hidden="true" style="color:#fff"><use href="#i-circle-help"></use></svg>
+        </div>
+        <div class="dw-side-spacer"></div>
+        <div class="dw-si" title="Sign out">
+          <svg class="ico" aria-hidden="true" style="color:#fff"><use href="#i-log-out"></use></svg>
+        </div>
+      </div>
+
+      <!-- MAIN CONTENT (dictation view) -->
+      <div class="dw-content" id="dw-main-view">
+        <!-- F7 ROW -->
+        <div class="mr" id="mr-ptt">
+          <div class="mr-badge" id="mr-ptt-badge">F7</div>
+          <div class="mr-text">
+            <div class="mr-label" id="mr-ptt-label">Hold F7 to Dictate</div>
+            <div class="mr-sub" id="mr-ptt-sub">Release to insert text</div>
+          </div>
+          <div class="mr-wv"><div class="wv-icon"><div></div><div></div><div></div><div></div><div></div></div></div>
+        </div>
+        <!-- F8 ROW -->
+        <div class="mr" id="mr-hf">
+          <div class="mr-badge" id="mr-hf-badge">F8</div>
+          <div class="mr-text">
+            <div class="mr-label" id="mr-hf-label">Press F8 to Start Hands-Free</div>
+            <div class="mr-sub" id="mr-hf-sub">Press again to stop</div>
+          </div>
+          <div class="mr-wv"><div class="wv-icon"><div></div><div></div><div></div><div></div><div></div></div></div>
+        </div>
+        <!-- TARGET -->
+        <div class="dw-target" id="dw-target" style="display:none">Dictate to: <strong>Notepad</strong></div>
+        <!-- TRANSCRIPT -->
+        <div class="dw-transcript empty" id="dw-trans"></div>
+      </div>
+
+      <!-- HISTORY VIEW -->
+      <div class="dw-history" id="dw-hist-view">
+        <h3>Transcription History</h3>
+        <div class="hist-item">
+          <div class="hist-meta"><div class="hist-date">May 12, 2026 &nbsp; 12:02 AM</div><div class="hist-status"><svg class="ico" aria-hidden="true"><use href="#i-check"></use></svg> Text Inserted</div><div class="hist-actions"><div title="Copy"><svg class="ico" aria-hidden="true"><use href="#i-copy"></use></svg></div><div title="Expand"><svg class="ico" aria-hidden="true"><use href="#i-chevron-down"></use></svg></div></div></div>
+          <div class="hist-text">Integer ipsum lacus, ornare ac euismod non, egestas lobortis velit. Vivamus tortor magna, commodo ullamcorper iaculis quis, consectetur sit amet justo.</div>
+        </div>
+        <div class="hist-item">
+          <div class="hist-meta"><div class="hist-date">May 12, 2026 &nbsp; 12:02 AM</div><div class="hist-actions"><div title="Copy"><svg class="ico" aria-hidden="true"><use href="#i-copy"></use></svg></div><div title="Expand"><svg class="ico" aria-hidden="true"><use href="#i-chevron-down"></use></svg></div></div></div>
+          <div class="hist-text">Integer ipsum lacus, ornare ac euismod non, egestas lobortis velit. Vivamus tortor magna, commodo ullamcorper iaculis quis.</div>
+        </div>
+        <div class="hist-item">
+          <div class="hist-meta"><div class="hist-date">May 12, 2026 &nbsp; 12:02 AM</div><div class="hist-actions"><div title="Copy"><svg class="ico" aria-hidden="true"><use href="#i-copy"></use></svg></div><div title="Expand"><svg class="ico" aria-hidden="true"><use href="#i-chevron-down"></use></svg></div></div></div>
+          <div class="hist-text">Integer ipsum lacus, ornare ac euismod non, egestas lobortis.</div>
+        </div>
+        <div class="hist-item">
+          <div class="hist-meta"><div class="hist-date">May 12, 2026 &nbsp; 12:02 AM</div><div class="hist-actions"><div title="Copy"><svg class="ico" aria-hidden="true"><use href="#i-copy"></use></svg></div><div title="Expand"><svg class="ico" aria-hidden="true"><use href="#i-chevron-down"></use></svg></div></div></div>
+          <div class="hist-text">Integer ipsum lacus, ornare ac euismod non, egestas lobortis velit. Vivamus tortor magna, commodo ullamcorper iaculis quis, consectetur sit amet justo. Sed at scelerisque sem. In maximus augue eu risus ornare ac euismod non, egestas lobortis velit.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /dt-layout -->
+
+<!-- MINI BAR -->
+<div class="dt-minibar" id="dt-minibar">
+  <img class="dolphin-logo mb-logo" src="/Users/shilpi/.cursor/projects/Users-shilpi-Downloads-DolphinApp-Windows/assets/image-5a8f8908-1ae4-4851-b1e9-1606d8bd520e.png" alt="Dolphin"/>
+  <div class="mb-status idle" id="mb-stat">
+    <div class="wv-icon" style="display:none" id="mb-wv"><div></div><div></div><div></div><div></div><div></div></div>
+    <span id="mb-icon"></span>
+  </div>
+  <div class="mb-sep"></div>
+  <div class="mb-btn" onclick="toggleMinibar()" title="Expand widget"><svg class="ico" aria-hidden="true"><use href="#i-maximize-2"></use></svg></div>
+  <div class="mb-btn" title="More"><svg class="ico" aria-hidden="true"><use href="#i-more-vertical"></use></svg></div>
+</div>
+<div class="mb-bubble" id="mb-bubble"></div>
+
+<!-- CYCLE CONTROLS -->
+<div style="position:absolute;left:20px;bottom:88px;display:flex;flex-direction:column;align-items:flex-start;gap:8px;z-index:50">
+  <button id="cycle-btn" onclick="toggleCycle()" style="padding:8px 20px;border:none;border-radius:20px;background:var(--p);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);box-shadow:0 2px 12px rgba(107,107,212,.4);display:flex;align-items:center;gap:6px"><svg class="ico" aria-hidden="true"><use href="#i-play"></use></svg> Play All States</button>
+  <button id="mini-cycle-btn" onclick="toggleMiniCycle()" style="padding:8px 16px;border:none;border-radius:20px;background:#fff;color:var(--p);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);box-shadow:0 2px 12px rgba(0,0,0,.18);display:flex;align-items:center;gap:6px"><svg class="ico" aria-hidden="true"><use href="#i-play"></use></svg> Cycle Pill</button>
+  <span id="cycle-label" style="display:none;font-size:12px;color:#fff;background:rgba(0,0,0,.5);padding:4px 12px;border-radius:12px;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis"></span>
+</div>
+
+</div><!-- /dt-phase -->
+
+<!-- ══════ TASKBAR ══════ -->
+<div class="taskbar">
+  <div class="tb-left">
+    <span>8°C</span>
+    <span style="font-size:10px;opacity:.7">Partly sunny</span>
+  </div>
+  <div class="tb-icons">
+    <div class="tb-i"><svg class="ico" aria-hidden="true"><use href="#i-grid-2x2"></use></svg></div>
+    <div class="tb-i"><svg class="ico" aria-hidden="true"><use href="#i-plus-circle"></use></svg></div>
+    <div class="tb-i"><svg class="ico" aria-hidden="true"><use href="#i-calendar"></use></svg></div>
+    <div class="tb-i"><svg class="ico" aria-hidden="true"><use href="#i-monitor"></use></svg></div>
+    <div class="tb-i"><svg class="ico" aria-hidden="true"><use href="#i-trash-2"></use></svg></div>
+    <div class="tb-i"><img class="dolphin-logo" src="/Users/shilpi/.cursor/projects/Users-shilpi-Downloads-DolphinApp-Windows/assets/image-5a8f8908-1ae4-4851-b1e9-1606d8bd520e.png" alt="Dolphin" style="width:20px;height:20px"/></div>
+  </div>
+  <div class="tb-right">
+    <div class="tb-tray">
+      <img class="dolphin-logo" src="/Users/shilpi/.cursor/projects/Users-shilpi-Downloads-DolphinApp-Windows/assets/image-5a8f8908-1ae4-4851-b1e9-1606d8bd520e.png" alt="Dolphin" style="width:14px;height:14px"/>
+      <svg class="ico" aria-hidden="true"><use href="#i-chevron-up"></use></svg>
+      <svg class="ico" aria-hidden="true"><use href="#i-eye"></use></svg>
+      <svg class="ico" aria-hidden="true"><use href="#i-headphones"></use></svg>
+      <svg class="ico" aria-hidden="true"><use href="#i-battery"></use></svg>
+    </div>
+    <span>11:00 AM</span>
+    <span style="font-size:9px;opacity:.6">10/05/2021</span>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════
+   ONBOARDING LOGIC
+   ════════════════════════════════════════ */
+var SMAP=[0,0,0,1,2,3,3,3,3,4], cur=0, shortcutMode='desktop';
+
+function iconMarkup(name,cls){
+  return '<svg class="ico '+(cls||'')+'" aria-hidden="true"><use href="#i-'+name+'"></use></svg>';
+}
+
+function getPttKey(){return shortcutMode==='desktop'?'F7':'Alt+X'}
+function getHfKey(){return shortcutMode==='desktop'?'F8':'Alt+Z'}
+
+function updateKeyLabels(){
+  var p=getPttKey(),h=getHfKey();
+  var m={'w-ptt-label':p,'w-hf-label':h,'sr-ptt-key':p,'sr-hf-key':h,'sr-pk1':p,'sr-pk2':h,
+    'ptt-see-key':p,'ptt-try-key':p,'hf-see-key':h,'hf-try-key':h,
+    'hf-start-badge':h,'hf-stop-badge':h,'done-ptt-label':p,'done-hf-label':h,
+    'mr-ptt-badge':p,'mr-hf-badge':h,'ptt-widget-key':p,'hf-widget-key':h,
+    'done-widget-ptt':p,'done-widget-hf':h};
+  for(var id in m){var el=document.getElementById(id);if(el)el.textContent=m[id]}
+  document.getElementById('mr-ptt-label').textContent='Hold '+p+' to Dictate';
+  document.getElementById('mr-ptt-sub').textContent='Release to insert text';
+  document.getElementById('mr-hf-label').textContent='Press '+h+' to Start Hands-Free';
+  document.getElementById('mr-hf-sub').textContent='Press again to stop';
+}
+
+function pickShortcut(m){
+  shortcutMode=m;
+  document.getElementById('sc-desktop').classList.toggle('selected',m==='desktop');
+  document.getElementById('sc-laptop').classList.toggle('selected',m==='laptop');
+  updateKeyLabels();
+}
+
+function goTo(n){
+  document.querySelector('.screen.active').classList.remove('active');
+  document.querySelector('[data-step="'+n+'"]').classList.add('active');
+  cur=n;updateNav();
+  if(n===2)updateOtpSub();
+  if(n===5)startPttSeeAnim();
+  if(n===6)resetPttDemo();
+  if(n===8)resetHfDemo();
+}
+
+function updateNav(){
+  var s=SMAP[cur];
+  document.querySelectorAll('.ns').forEach(function(el,i){
+    el.classList.remove('active','done');
+    if(i<s)el.classList.add('done');
+    else if(i===s)el.classList.add('active');
+  });
+}
+
+function sendCode(){updateOtpSub();goTo(2)}
+
+function updateOtpSub(){
+  var em=document.getElementById('email-in').value.trim()||'you@marvix.ai';
+  document.getElementById('otp-sub').innerHTML='Enter the 4-digit code sent to <strong>'+em+'</strong>';
+}
+
+// OTP
+var ois=[0,1,2,3].map(function(i){return document.getElementById('oi'+i)});
+ois.forEach(function(inp,i){
+  inp.addEventListener('input',function(){
+    inp.value=inp.value.replace(/\D/g,'').slice(0,1);
+    if(inp.value){inp.classList.add('ok');if(i<3)ois[i+1].focus()}else inp.classList.remove('ok');
+    var p=document.getElementById('op'+i);if(p)p.textContent=inp.value||'·';
+    document.getElementById('btn-verify').disabled=!ois.every(function(o){return o.value});
+  });
+  inp.addEventListener('keydown',function(e){if(e.key==='Backspace'&&!inp.value&&i>0)ois[i-1].focus()});
+});
+
+// PTT See-it animation
+var pttAnimTimer=null;
+function startPttSeeAnim(){
+  var el=document.getElementById('ptt-demo-text');
+  var t='As you can see I am dictating into this box using the Dolphin dictation tool.';
+  if(pttAnimTimer)clearInterval(pttAnimTimer);
+  el.textContent='';var idx=0;
+  pttAnimTimer=setInterval(function(){el.textContent+=t[idx++];if(idx>=t.length){clearInterval(pttAnimTimer);pttAnimTimer=null}},28);
+}
+
+// PTT Try-it
+var pttDA=false,pttDT=false,pttDD=false;
+var PTT_TEXT='Patient is a 58-year-old male presenting with acute onset chest pain, diaphoresis, and shortness of breath.';
+function resetPttDemo(){pttDA=false;pttDT=false;pttDD=false;var f=document.getElementById('ptt-demo-f');f.className='np-body dim';f.textContent='Click here to focus…';f.style.color='';document.getElementById('ptt-demo-hint').innerHTML='Step 1 of 2 — <strong>Click into the text field above</strong>';document.getElementById('btn-ptt-demo').disabled=true}
+function activatePttDemo(){if(pttDD)return;var f=document.getElementById('ptt-demo-f');f.classList.remove('dim');f.classList.add('focused');f.style.color='#bbb';f.textContent='';pttDA=true;document.getElementById('ptt-demo-hint').innerHTML='Step 2 of 2 — <strong>Hold '+getPttKey()+'</strong> to start dictating'}
+function startPttDemoType(){pttDT=true;var f=document.getElementById('ptt-demo-f');f.style.color='var(--tx)';f.textContent='';document.getElementById('ptt-demo-hint').innerHTML='<span style="color:var(--t)">'+iconMarkup('mic','state-icon')+' Listening...</span> Release when done.';var i=0,iv=setInterval(function(){f.textContent+=PTT_TEXT[i++];if(i>=PTT_TEXT.length){clearInterval(iv);pttDD=true;pttDT=false;document.getElementById('ptt-demo-hint').innerHTML='<span style="color:var(--t)">'+iconMarkup('check','state-icon')+' Text inserted!</span> You\'ve got the hang of it.';document.getElementById('btn-ptt-demo').disabled=false}},30)}
+
+// HF Try-it
+var hfDA=false,hfDT=false,hfDD=false,hfIv=null;
+var HF_TEXT='Patient reports intermittent dizziness and fatigue for the past three weeks. Blood pressure slightly elevated at 148/92.';
+function resetHfDemo(){hfDA=false;hfDT=false;hfDD=false;if(hfIv){clearInterval(hfIv);hfIv=null}var f=document.getElementById('hf-demo-f');f.className='np-body dim';f.textContent='Click here to focus…';f.style.color='';document.getElementById('hf-demo-hint').innerHTML='Step 1 of 2 — <strong>Click into the text field above</strong>';document.getElementById('btn-hf-demo').disabled=true}
+function activateHfDemo(){if(hfDD)return;var f=document.getElementById('hf-demo-f');f.classList.remove('dim');f.classList.add('focused');f.style.color='#bbb';f.textContent='';hfDA=true;document.getElementById('hf-demo-hint').innerHTML='Step 2 of 2 — <strong>Press '+getHfKey()+'</strong> to start hands-free'}
+function startHfDemoType(){hfDT=true;var f=document.getElementById('hf-demo-f');f.style.color='var(--tx)';f.textContent='';document.getElementById('hf-demo-hint').innerHTML='<span style="color:var(--t)">'+iconMarkup('mic','state-icon')+' Listening...</span> Press '+getHfKey()+' again to stop.';var i=0;hfIv=setInterval(function(){f.textContent+=HF_TEXT[i++];if(i>=HF_TEXT.length){clearInterval(hfIv);hfIv=null;hfDD=true;hfDT=false;document.getElementById('hf-demo-hint').innerHTML='<span style="color:var(--t)">'+iconMarkup('check','state-icon')+' Text inserted!</span> Hands-free mode works perfectly.';document.getElementById('btn-hf-demo').disabled=false}},30)}
+
+// Onboarding keyboard
+document.addEventListener('keydown',function(e){
+  var isPtt=false,isHf=false;
+  if(shortcutMode==='desktop'){isPtt=e.key==='F7';isHf=e.key==='F8'}
+  else{isPtt=e.altKey&&e.key.toLowerCase()==='x';isHf=e.altKey&&e.key.toLowerCase()==='z'}
+  if(isPtt){e.preventDefault();if(cur===6&&pttDA&&!pttDT&&!pttDD)startPttDemoType();if(dtActive)dtPttDown()}
+  if(isHf){e.preventDefault();if(cur===8&&hfDA&&!hfDT&&!hfDD)startHfDemoType();if(dtActive)dtHfToggle()}
+});
+document.addEventListener('keyup',function(e){
+  var isPtt=false;
+  if(shortcutMode==='desktop')isPtt=e.key==='F7';
+  else isPtt=e.altKey&&e.key.toLowerCase()==='x';
+  if(isPtt&&dtActive)dtPttUp();
+});
+
+updateNav();updateKeyLabels();
+
+/* ════════════════════════════════════════
+   DESKTOP PHASE LOGIC
+   ════════════════════════════════════════ */
+var dtActive=false, wState='idle', hasTarget=false, minibarMode=false;
+var DT_TEXT='As you can see I am dictating into this box using the Dolphin dictation tool';
+var dtTypeIv=null, dtTypeIdx=0, lastTranscript='';
+
+function launchDesktop(){
+  document.getElementById('ob-phase').style.display='none';
+  document.getElementById('dt-phase').style.display='block';
+  dtActive=true;
+  applyWidgetState('idle');
+}
+
+function setTarget(){
+  hasTarget=true;
+  document.getElementById('dw-target').style.display='block';
+  applyWidgetState(wState);
+}
+
+function showMainView(){
+  document.getElementById('dw-main-view').style.display='flex';
+  document.getElementById('dw-hist-view').classList.remove('active');
+  document.getElementById('si-mic').classList.add('active');
+  document.getElementById('si-hist').classList.remove('active');
+}
+
+function showHistoryView(){
+  document.getElementById('dw-main-view').style.display='none';
+  document.getElementById('dw-hist-view').classList.add('active');
+  document.getElementById('si-mic').classList.remove('active');
+  document.getElementById('si-hist').classList.add('active');
+}
+
+function toggleMinibar(){
+  minibarMode=!minibarMode;
+  document.getElementById('dw-full').style.display=minibarMode?'none':'flex';
+  document.getElementById('dt-minibar').classList.toggle('active',minibarMode);
+  updateMinibar();
+}
+
+function updateMinibar(){
+  renderMinibarState(getMinibarStateFromWidget());
+}
+
+function getMinibarStateFromWidget(){
+  if(wState==='ptt-listening'||wState==='hf-listening'){
+    return {kind:'listening',bubble:lastTranscript};
+  }
+  if(wState.includes('processing'))return {kind:'proc',icon:'rotate-cw',iconClass:'spin'};
+  if(wState.includes('inserted'))return {kind:'ok',icon:'check'};
+  if(wState.includes('error')||wState.includes('fail'))return {kind:'err',icon:'alert-circle'};
+  return {kind:'idle'};
+}
+
+function renderMinibarState(state){
+  var icon=document.getElementById('mb-icon');
+  var wv=document.getElementById('mb-wv');
+  var stat=document.getElementById('mb-stat');
+  var bubble=document.getElementById('mb-bubble');
+  stat.className='mb-status';wv.style.display='none';icon.innerHTML='';
+  stat.classList.add(state.kind||'idle');
+  if(state.kind==='listening')wv.style.display='flex';
+  else if(state.icon)icon.innerHTML=iconMarkup(state.icon,state.iconClass||'');
+  if(state.bubble){bubble.classList.add('active');bubble.textContent=state.bubble}
+  else{bubble.classList.remove('active')}
+}
+
+function applyWidgetState(state){
+  wState=state;
+  var ptt=document.getElementById('mr-ptt');
+  var hf=document.getElementById('mr-hf');
+  var trans=document.getElementById('dw-trans');
+  var target=document.getElementById('dw-target');
+  var pk=getPttKey(),hk=getHfKey();
+  ptt.className='mr';hf.className='mr';
+  document.getElementById('mr-ptt-label').textContent='Hold '+pk+' to Dictate';
+  document.getElementById('mr-ptt-sub').textContent='Release to insert text';
+  document.getElementById('mr-hf-label').textContent='Press '+hk+' to Start Hands-Free';
+  document.getElementById('mr-hf-sub').textContent='Press again to stop';
+  target.style.display=hasTarget?'block':'none';
+  trans.className='dw-transcript';trans.textContent='';
+
+  switch(state){
+    case 'idle':
+      if(hasTarget){trans.classList.add('empty');trans.textContent=lastTranscript||''}
+      break;
+    case 'ptt-listening':
+      ptt.classList.add('listening');hf.classList.add('dimmed');
+      document.getElementById('mr-ptt-label').textContent='Listening...';
+      document.getElementById('mr-ptt-sub').textContent='Release to Stop';
+      trans.classList.add('empty');trans.textContent='Listening...';
+      break;
+    case 'ptt-processing':
+      ptt.classList.add('processing');hf.classList.add('dimmed');
+      document.getElementById('mr-ptt-label').innerHTML='<span class="spinner"></span> Processing...';
+      document.getElementById('mr-ptt-sub').textContent='';
+      trans.textContent=lastTranscript;
+      break;
+    case 'ptt-inserted':
+      ptt.classList.add('success');
+      document.getElementById('mr-ptt-label').innerHTML=iconMarkup('check','state-icon')+' Text Inserted';
+      document.getElementById('mr-ptt-sub').textContent='';
+      trans.textContent=lastTranscript;
+      break;
+    case 'ptt-fail':
+      ptt.classList.add('error');
+      document.getElementById('mr-ptt-label').textContent='● Failed to Insert Text';
+      document.getElementById('mr-ptt-sub').textContent='Paste with Ctrl + V instead';
+      trans.textContent=lastTranscript;
+      break;
+    case 'hf-listening':
+      hf.classList.add('listening');ptt.classList.add('dimmed');
+      document.getElementById('mr-hf-label').textContent='Listening...';
+      document.getElementById('mr-hf-sub').textContent='Press '+hk+' to Stop';
+      trans.classList.add('empty');trans.textContent='Listening...';
+      break;
+    case 'hf-processing':
+      hf.classList.add('processing');ptt.classList.add('dimmed');
+      document.getElementById('mr-hf-label').innerHTML='<span class="spinner"></span> Processing...';
+      document.getElementById('mr-hf-sub').textContent='';
+      trans.textContent=lastTranscript;
+      break;
+    case 'hf-inserted':
+      hf.classList.add('success');
+      document.getElementById('mr-hf-label').innerHTML=iconMarkup('check','state-icon')+' Text Inserted';
+      document.getElementById('mr-hf-sub').textContent='';
+      trans.textContent=lastTranscript;
+      break;
+    case 'hf-fail':
+      hf.classList.add('error');
+      document.getElementById('mr-hf-label').textContent='● Failed to Insert Text';
+      document.getElementById('mr-hf-sub').textContent='Paste with Ctrl + V instead';
+      trans.textContent=lastTranscript;
+      break;
+    case 'transcribe-error':
+      trans.classList.add('err-text');
+      trans.textContent='Failed to transcribe. Please check your connection and try again';
+      break;
+  }
+  if(minibarMode)updateMinibar();
+}
+
+// PTT simulation
+function dtPttDown(){
+  if(wState!=='idle'&&wState!=='ptt-inserted'&&wState!=='ptt-fail'&&wState!=='transcribe-error')return;
+  if(!hasTarget)return;
+  lastTranscript='';dtTypeIdx=0;
+  applyWidgetState('ptt-listening');
+  startLiveType('ptt');
+}
+
+function dtPttUp(){
+  if(wState!=='ptt-listening')return;
+  stopLiveType();
+  applyWidgetState('ptt-processing');
+  setTimeout(function(){
+    if(Math.random()>.15){
+      document.getElementById('np-editor').textContent=lastTranscript;
+      applyWidgetState('ptt-inserted');
+      setTimeout(function(){applyWidgetState('idle')},2000);
+    }else{
+      applyWidgetState('ptt-fail');
+      setTimeout(function(){applyWidgetState('idle')},3000);
+    }
+  },1200);
+}
+
+// HF simulation
+var hfActive=false;
+function dtHfToggle(){
+  if(!hasTarget)return;
+  if(!hfActive){
+    hfActive=true;lastTranscript='';dtTypeIdx=0;
+    applyWidgetState('hf-listening');
+    startLiveType('hf');
+  }else{
+    hfActive=false;
+    stopLiveType();
+    applyWidgetState('hf-processing');
+    setTimeout(function(){
+      if(Math.random()>.15){
+        var ed=document.getElementById('np-editor');
+        ed.textContent=(ed.textContent?ed.textContent+' ':'')+lastTranscript;
+        applyWidgetState('hf-inserted');
+        setTimeout(function(){applyWidgetState('idle')},2000);
+      }else{
+        applyWidgetState('hf-fail');
+        setTimeout(function(){applyWidgetState('idle')},3000);
+      }
+    },1200);
+  }
+}
+
+// Live typing
+function startLiveType(mode){
+  var trans=document.getElementById('dw-trans');
+  trans.classList.remove('empty');lastTranscript='';dtTypeIdx=0;
+  dtTypeIv=setInterval(function(){
+    if(dtTypeIdx>=DT_TEXT.length){clearInterval(dtTypeIv);dtTypeIv=null;return}
+    lastTranscript+=DT_TEXT[dtTypeIdx++];
+    trans.textContent=lastTranscript;
+    if(minibarMode){var b=document.getElementById('mb-bubble');b.classList.add('active');b.textContent=lastTranscript}
+  },50);
+}
+function stopLiveType(){if(dtTypeIv){clearInterval(dtTypeIv);dtTypeIv=null}}
+
+/* ════════════════════════════════════════
+   MINI-BAR STATE MACHINE
+   ════════════════════════════════════════ */
+var miniCycleTimer=null,miniCycleStep=0,miniCycling=false;
+var MINI_STATES=[
+  {name:'Pill — Idle',dur:1400,state:{kind:'idle'}},
+  {name:'Pill — Listening',dur:2400,state:{kind:'listening',bubble:'Listening...'}},
+  {name:'Pill — Live Transcript',dur:2600,state:{kind:'listening',bubble:'As you can see I am dictating into this box'}},
+  {name:'Pill — Processing',dur:1600,state:{kind:'proc',icon:'rotate-cw',iconClass:'spin',bubble:'Transcribing...'}},
+  {name:'Pill — Text Inserted',dur:1700,state:{kind:'ok',icon:'check',bubble:'Text inserted'}},
+  {name:'Pill — Failed',dur:1900,state:{kind:'err',icon:'alert-circle',bubble:'Could not insert text'}},
+  {name:'Pill — Idle',dur:1200,state:{kind:'idle'}}
+];
+
+function runMiniCycleStep(){
+  if(miniCycleStep>=MINI_STATES.length){stopMiniCycle();return}
+  var s=MINI_STATES[miniCycleStep];
+  document.getElementById('cycle-label').textContent=(miniCycleStep+1)+'/'+MINI_STATES.length+' — '+s.name;
+  renderMinibarState(s.state);
+  miniCycleStep++;
+  miniCycleTimer=setTimeout(runMiniCycleStep,s.dur);
+}
+
+function startMiniCycle(){
+  if(miniCycling)return;
+  if(cycling)stopCycle();
+  miniCycling=true;miniCycleStep=0;
+  if(!minibarMode)toggleMinibar();
+  document.getElementById('mini-cycle-btn').innerHTML=iconMarkup('square')+' Stop Pill';
+  document.getElementById('cycle-label').style.display='inline';
+  runMiniCycleStep();
+}
+
+function stopMiniCycle(){
+  miniCycling=false;
+  if(miniCycleTimer){clearTimeout(miniCycleTimer);miniCycleTimer=null}
+  renderMinibarState(getMinibarStateFromWidget());
+  document.getElementById('mini-cycle-btn').innerHTML=iconMarkup('play')+' Cycle Pill';
+  document.getElementById('cycle-label').textContent='Pill cycle done';
+  setTimeout(function(){if(!cycling&&!miniCycling)document.getElementById('cycle-label').style.display='none'},2000);
+}
+
+function toggleMiniCycle(){miniCycling?stopMiniCycle():startMiniCycle()}
+
+/* ════════════════════════════════════════
+   AUTO-CYCLE DEMO
+   ════════════════════════════════════════ */
+var cycleTimer=null,cycleStep=0,cycling=false;
+var CYCLE_STATES=[
+  {name:'Idle',fn:function(){applyWidgetState('idle')},dur:2000},
+  {name:'PTT — Listening',fn:function(){lastTranscript='';dtTypeIdx=0;applyWidgetState('ptt-listening');startLiveType('ptt')},dur:3500},
+  {name:'PTT — Processing',fn:function(){stopLiveType();applyWidgetState('ptt-processing')},dur:1500},
+  {name:'PTT — Text Inserted',fn:function(){document.getElementById('np-editor').textContent=lastTranscript;applyWidgetState('ptt-inserted')},dur:2500},
+  {name:'Idle (after PTT)',fn:function(){applyWidgetState('idle')},dur:1500},
+  {name:'PTT — Listening (fail demo)',fn:function(){lastTranscript='';dtTypeIdx=0;applyWidgetState('ptt-listening');startLiveType('ptt')},dur:2500},
+  {name:'PTT — Processing',fn:function(){stopLiveType();applyWidgetState('ptt-processing')},dur:1500},
+  {name:'PTT — Failed',fn:function(){applyWidgetState('ptt-fail')},dur:2500},
+  {name:'Idle (after fail)',fn:function(){applyWidgetState('idle')},dur:1500},
+  {name:'HF — Listening',fn:function(){lastTranscript='';dtTypeIdx=0;applyWidgetState('hf-listening');startLiveType('hf')},dur:3500},
+  {name:'HF — Processing',fn:function(){stopLiveType();applyWidgetState('hf-processing')},dur:1500},
+  {name:'HF — Text Inserted',fn:function(){var ed=document.getElementById('np-editor');ed.textContent=(ed.textContent?ed.textContent+' ':'')+lastTranscript;applyWidgetState('hf-inserted')},dur:2500},
+  {name:'Idle (after HF)',fn:function(){applyWidgetState('idle')},dur:1500},
+  {name:'HF — Listening (fail demo)',fn:function(){lastTranscript='';dtTypeIdx=0;applyWidgetState('hf-listening');startLiveType('hf')},dur:2500},
+  {name:'HF — Processing',fn:function(){stopLiveType();applyWidgetState('hf-processing')},dur:1500},
+  {name:'HF — Failed',fn:function(){applyWidgetState('hf-fail')},dur:2500},
+  {name:'Idle (after HF fail)',fn:function(){applyWidgetState('idle')},dur:1500},
+  {name:'Transcription Error',fn:function(){applyWidgetState('transcribe-error')},dur:2500},
+  {name:'Idle (final)',fn:function(){applyWidgetState('idle')},dur:1500},
+  {name:'History View',fn:function(){showHistoryView()},dur:3000},
+  {name:'Back to Main',fn:function(){showMainView()},dur:1500},
+  {name:'Mini-bar Mode',fn:function(){if(!minibarMode)toggleMinibar();renderMinibarState(MINI_STATES[0].state)},dur:1600},
+  {name:'Mini-bar — Listening',fn:function(){renderMinibarState(MINI_STATES[1].state)},dur:2400},
+  {name:'Mini-bar — Live Transcript',fn:function(){renderMinibarState(MINI_STATES[2].state)},dur:2600},
+  {name:'Mini-bar — Processing',fn:function(){renderMinibarState(MINI_STATES[3].state)},dur:1600},
+  {name:'Mini-bar — Text Inserted',fn:function(){renderMinibarState(MINI_STATES[4].state)},dur:1700},
+  {name:'Mini-bar — Failed',fn:function(){renderMinibarState(MINI_STATES[5].state)},dur:1900},
+  {name:'Back to Full Widget',fn:function(){applyWidgetState('idle');if(minibarMode)toggleMinibar()},dur:2000},
+];
+
+function runCycleStep(){
+  if(cycleStep>=CYCLE_STATES.length){stopCycle();return}
+  var s=CYCLE_STATES[cycleStep];
+  document.getElementById('cycle-label').textContent=(cycleStep+1)+'/'+CYCLE_STATES.length+' — '+s.name;
+  s.fn();
+  cycleStep++;
+  cycleTimer=setTimeout(runCycleStep,s.dur);
+}
+
+function startCycle(){
+  if(cycling)return;
+  cycling=true;
+  if(miniCycling)stopMiniCycle();
+  cycleStep=0;
+  hasTarget=true;
+  document.getElementById('dw-target').style.display='block';
+  document.getElementById('np-editor').textContent='';
+  lastTranscript='';
+  document.getElementById('cycle-btn').innerHTML=iconMarkup('square')+' Stop';
+  document.getElementById('cycle-label').style.display='inline';
+  runCycleStep();
+}
+
+function stopCycle(){
+  cycling=false;
+  if(cycleTimer){clearTimeout(cycleTimer);cycleTimer=null}
+  stopLiveType();
+  if(minibarMode)toggleMinibar();
+  showMainView();
+  applyWidgetState('idle');
+  document.getElementById('cycle-btn').innerHTML=iconMarkup('play')+' Play All States';
+  document.getElementById('cycle-label').textContent='Done';
+  setTimeout(function(){document.getElementById('cycle-label').style.display='none'},2000);
+}
+
+function toggleCycle(){cycling?stopCycle():startCycle()}
+</script>
+
+<script>window.addEventListener('load',()=>{setTimeout(()=>{goTo(9);},50)});</script>
+</body>
+</html>
